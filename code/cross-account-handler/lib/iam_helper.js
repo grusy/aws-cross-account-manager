@@ -169,24 +169,48 @@ exports.deleteIamRole = function(roleName, Credentials) {
 					return resolve(roleName);
 				} else {
 					console.log("ROLE exists " + roleName);
-					iam.deleteRolePolicy({
-						PolicyName : roleName + '-Permission',
-						RoleName : roleName
-					}, function(err, data) {
-						iam.deleteRole({
-							RoleName : roleName
-						}, function(err, data) {
-							if (err) {
-								console.log("ERROR deleting ROLE: " + roleName);
-								console.log(err, err.stack); 
+					iam.listAttachedRolePolicies({RoleName : roleName}).eachPage(function(err, data, done) {
+						if (err) {
+							console.log(err, err.stack); 
+						  	return reject(err);
+						}
+						if (data && data.AttachedPolicies) {
+						  data.AttachedPolicies.forEach(function(rolePolicy) {
+							var params = {
+							  PolicyArn: rolePolicy.PolicyArn,
+							  RoleName: roleName
+							};
+							iam.detachRolePolicy(params, function(err, data) {
+							  if (err) {
+								console.error('Unable to detach policy from role.');
 								return reject(err);
-							} else {
-								console.log("Deleted ROLE " + roleName);
-								return resolve(roleName);
-							}
-						});
-					})
-
+							  } else {
+								console.log('Policy detached from role successfully.');
+							   
+							  }
+							});
+						  });
+						} else {
+						  console.log('Policy was not attached to the role.');
+						}
+						  iam.deleteRolePolicy({
+							  PolicyName : roleName + '-Permission',
+							  RoleName : roleName
+						  }, function(err, data) {
+							  iam.deleteRole({
+								  RoleName : roleName
+							  }, function(err, data) {
+								  if (err) {
+									  console.log("ERROR deleting ROLE: " + roleName);
+									  console.log(err, err.stack); 
+									  return reject(err);
+								  } else {
+									  console.log("Deleted ROLE " + roleName);
+								  }
+							  });
+						  });
+						  return resolve(roleName);
+					  });
 				}
 			});
 		}
@@ -200,7 +224,8 @@ exports.deleteIamRole = function(roleName, Credentials) {
 /*
  * Public: This function creates the CrossAccountManager-* role in Master or Sub-account
  */
-exports.createIamRole = function(roleName, assumeRolePolicy, rolePolicy, Credentials) {
+exports.createIamRole = function(roleName, assumeRolePolicy, rolePolicy, managedPolicies, Credentials) {
+	console.log("rolename" + roleName + "assumeRolePolicy" + assumeRolePolicy + "rolePolicy" + rolePolicy + "managedPolicies" + managedPolicies)
 	return new Promise(function(resolve, reject) {
 		try {
 			
@@ -235,13 +260,26 @@ exports.createIamRole = function(roleName, assumeRolePolicy, rolePolicy, Credent
 								return reject(err);
 							} else {
 								console.log("Created POLICY: " + roleName);
-								return resolve(roleName);
 							}
 						});
-					} else {
-						return resolve(roleName);
+					} 
+					if (managedPolicies) {
+						managedPolicies.forEach(function(managedPolicy) {
+							iam.attachRolePolicy({
+							    RoleName : roleName,
+							    PolicyArn : managedPolicy
+							}, function(err, data) {
+								if (err) {
+									console.log("ERROR attaching Managed Policy for role : " + roleName);
+									console.log(err, err.stack); 
+									return reject(err);
+								} else {
+									console.log("Attached MANAGED POLCIY: " + managedPolicy);
+								}
+							});
+						});
 					}
-
+					return resolve(roleName);
 				}
 			});
 		}

@@ -70,7 +70,7 @@
         "Role" : {
           "Fn::GetAtt" : [ "InitSubAccountExecRole", "Arn" ]
         },
-        "Runtime" : "nodejs4.3",
+        "Runtime" : "nodejs6.10",
         "Timeout" : "60"
       }
     },
@@ -120,7 +120,17 @@
           "Version" : "2012-10-17",
           "Statement" : [ {
             "Effect" : "Allow",
-            "Action" : [ "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy" ],
+            "Action" : [ 
+              "iam:GetRole",
+              "iam:DetachRolePolicy",
+              "iam:DeleteRolePolicy",
+              "iam:ListAttachedRolePolicies",
+              "iam:CreateRole",
+              "iam:DeleteRole",
+              "iam:AttachRolePolicy",
+              "iam:PutRolePolicy",
+              "iam:GetRolePolicy"
+             ],
             "Resource" : {
               "Fn::Join" : [ "", [ "arn:aws:iam:", ":", {
                 "Ref" : "AWS::AccountId"

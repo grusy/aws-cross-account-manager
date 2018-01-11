@@ -86,27 +86,53 @@ function _listroles_callback(err, data) {
 				var roleName = item.RoleName;
 				
 				if (roleName != 'CrossAccountManager-Admin-DO-NOT-DELETE' && roleName.startsWith('CrossAccountManager-')) {
-					iam.deleteRolePolicy({
-						PolicyName : roleName + '-Permission',
-						RoleName : roleName
-					}, function(err, data) {
+					iam.listAttachedRolePolicies({RoleName : roleName}).eachPage(function(err, data, done) {
 						if (err) {
-							console.log("ROLE policy does not exist " + roleName);
-						} else {
-							console.log("Deleted ROLE policy " + roleName);
+							console.log(err, err.stack); 
+						  	return reject(err);
 						}
-						iam.deleteRole({
-							RoleName : roleName
-						}, function(err, data) {
+						if (data && data.AttachedPolicies) {
+						  data.AttachedPolicies.forEach(function(rolePolicy) {
+							var params = {
+							  PolicyArn: rolePolicy.PolicyArn,
+							  RoleName: roleName
+							};
+							iam.detachRolePolicy(params, function(err, data) {
+							  if (err) {
+								console.error('Unable to detach policy from role.');
+								return reject(err);
+							  } else {
+								console.log('Policy detached from role successfully.');
+							   
+							  }
+							});
+						  });
+						} else {
+						  console.log('Policy was not attached to the role.');
+						}
+						  iam.deleteRolePolicy({
+							  PolicyName : roleName + '-Permission',
+							  RoleName : roleName
+						  }, function(err, data) {
 							if (err) {
-								console.log("ERROR deleting ROLE: " + roleName);
-								console.log(err, err.stack); 
+								console.log("ROLE policy does not exist " + roleName);
 							} else {
-								console.log("Deleted ROLE " + roleName);
+								console.log("Deleted ROLE policy " + roleName);
 							}
-						});
-					})					
-				}
+							  iam.deleteRole({
+								  RoleName : roleName
+							  }, function(err, data) {
+								  if (err) {
+									  console.log("ERROR deleting ROLE: " + roleName);
+									  console.log(err, err.stack); 
+								  } else {
+									  console.log("Deleted ROLE " + roleName);
+								  }
+							  });
+						  });
+					  });
+					}				
+				
 			});
 
 			// continue if we have more roles

@@ -6,6 +6,10 @@ roles:
        action : add
        #Reference to JSON policy file in custom_policy folder
        policy : Administrator.json
+       #Reference to managed policy ARN
+       managedPolicies : 
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws:iam::aws:policy/IAMUserChangePassword
        #Optional: apply this role to only accounts in this group
        accountgroup : production
     Dev-Administrator :
@@ -15,3 +19,5 @@ roles:
     Read-Only :
        action : add
        policy : Read-Only.json
+       managedPolicies : 
+        - arn:aws:iam::aws:policy/IAMUserChangePassword

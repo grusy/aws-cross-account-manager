@@ -41,6 +41,7 @@ exports.handleRoleEvent = function(event, context, callback) {
 		var role = message.Role;
 		var subAccountId = message.SubAccountId;
 		var policy = JSON.parse(message.Policy);
+		var managedPolicies = message.ManagedPolicies;
 		var masterAccountId = context.invokedFunctionArn.split(':')[4];
 		var region = context.invokedFunctionArn.split(':')[3];
 		var accessLinkstopic = "arn:aws:sns:" + region + ":" + masterAccountId + ":CrossAccountManager-AccessLinksTopic";
@@ -72,7 +73,7 @@ exports.handleRoleEvent = function(event, context, callback) {
 				Iam_Helper.deleteIamRole(role, data.Credentials).then(setTimeout(function() {
 					if (action == 'ADD') {
 						// Add a new role in sub-account
-						Iam_Helper.createIamRole(role, JSON.stringify(assumeRolePolicy), policy, data.Credentials).then(function (){
+						Iam_Helper.createIamRole(role, JSON.stringify(assumeRolePolicy), policy, managedPolicies, data.Credentials).then(function (){
 							// Update DynamoDB CrossAccountManager-Account-Roles table status to active
 							DDB_Helper.updateAccountRoles(role, subAccountId, 'active').then(setTimeout(function(){
 								// Publish a message to accessLinkstopic to update the static web page with shortcut URLs
@@ -197,6 +198,7 @@ exports.handleAccountEvent = function(event, context, callback) {
 									var roleTopic = "arn:aws:sns:" + region + ":" + masterAccountId + ":CrossAccountManager-RoleTopic";
 									var bucket = roleItem.Policy.split(':')[0];
 									var policyName = roleItem.Policy.split(':')[1];
+									var managedPolicies = roleItem.managedPolicies;
 
 									// Retrive the corresponding JSON policy document for this role from config bucket
 									S3_Helper.getS3Object(bucket, 'custom_policy/'+policyName).then(function(fileContent) {
@@ -206,7 +208,8 @@ exports.handleAccountEvent = function(event, context, callback) {
 											Action : action,
 											SubAccountId : accountId,
 											Role : role,
-											Policy: policy
+											Policy: policy,
+											ManagedPolicies: managedPolicies
 										}));
 									});
 								}

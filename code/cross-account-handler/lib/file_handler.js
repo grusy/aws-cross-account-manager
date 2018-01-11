@@ -122,6 +122,7 @@ exports.handleRoleS3File = function(event, context, callback) {
 			var role_properties = roles[role];
 			var action = role_properties.action.toUpperCase();
 			var policy = role_properties.policy;
+			var managedPolicies = role_properties.managedPolicies;
 			var account_group = role_properties.accountgroup  || "*";
 			var roleName = 'CrossAccountManager-' + role;
 			var masterAccountId = context.invokedFunctionArn.split(':')[4];
@@ -132,7 +133,7 @@ exports.handleRoleS3File = function(event, context, callback) {
 				throw new Error('Invalid action found in ' + bucket + key + ' It should be either ADD or REMOVE');
 			}
 			
-			if (policy == undefined) {
+			if (policy == undefined && managedPolicies == undefined) {
 				throw new Error('Missing policy tag in ' + bucket + key + ' for role: ' + role);
 			}
 			
@@ -146,6 +147,7 @@ exports.handleRoleS3File = function(event, context, callback) {
 					Item : {
 						Role : roleName,
 						Policy: bucket + ':' + policy,
+						ManagedPolicies : managedPolicies,
 						AccountGroup: account_group,
 						Status : (action == 'ADD') ? 'active' : 'deleted',
 						Timestamp : new Date().getTime()
@@ -225,7 +227,8 @@ exports.handleRoleS3File = function(event, context, callback) {
 									Action : action,
 									SubAccountId : account,
 									Role : roleName,
-									Policy: policy
+									Policy: policy,
+									ManagedPolicies: managedPolicies
 								}));
 							});
 						});
